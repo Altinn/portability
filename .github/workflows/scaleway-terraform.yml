@@ -1,0 +1,124 @@
+name: Scaleway Terraform
+
+on:
+  pull_request:
+    paths: ["cloud-providers/scaleway/**", "environments/internal-poc/correspondence/scaleway/**", "tools/**", ".github/workflows/scaleway-terraform.yml"]
+  push:
+    branches: [main]
+    paths: ["cloud-providers/scaleway/**", "environments/internal-poc/correspondence/scaleway/**", "tools/**", ".github/workflows/scaleway-terraform.yml"]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Terraform action
+        type: choice
+        options: [plan, apply, destroy]
+        default: plan
+      confirmation:
+        description: For destroy only, type the configured name_prefix
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scaleway-correspondence-${{ github.event_name == 'workflow_dispatch' && 'deployment' || github.ref }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_ROOT: environments/internal-poc/correspondence/scaleway/terraform
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Format
+        run: terraform fmt -check -recursive
+      - name: Validate all modules and roots without cloud credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tf-plugin-cache"
+          export TF_PLUGIN_CACHE_DIR="$RUNNER_TEMP/tf-plugin-cache"
+          roots=("$TF_ROOT" "cloud-providers/scaleway/terraform/bootstrap/state")
+          for module in cloud-providers/scaleway/terraform/modules/*; do
+            roots+=("$module")
+          done
+          for directory in "${roots[@]}"; do
+            terraform -chdir="$directory" init -backend=false -input=false
+            terraform -chdir="$directory" validate -no-color
+          done
+      - name: Mocked Terraform plans (no cloud resources)
+        run: terraform -chdir="$TF_ROOT" test -no-color
+      - name: CI input handling tests
+        run: python3 -m unittest discover -s tools/ci -p 'test_*.py'
+      - name: Probe cleanup and error-disclosure tests
+        run: python3 -m unittest discover -s tools/connectivity-probe -p 'test_*.py'
+      - name: Probe syntax
+        run: python3 -m py_compile tools/connectivity-probe/app.py
+
+  terraform:
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    environment: scaleway-internal-poc
+    env:
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_ORGANIZATION_ID }}
+      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_STATE_ACCESS_KEY || secrets.SCW_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_STATE_SECRET_KEY || secrets.SCW_SECRET_KEY }}
+      AWS_EC2_METADATA_DISABLED: "true"
+      SCW_STATE_BUCKET: ${{ vars.SCW_STATE_BUCKET }}
+      SCW_STATE_REGION: ${{ vars.SCW_STATE_REGION }}
+      SCW_TFVARS_JSON: ${{ vars.SCW_TFVARS_JSON }}
+      TF_VAR_database_password: ${{ secrets.POC_DATABASE_PASSWORD }}
+      TF_VAR_redis_password: ${{ secrets.POC_REDIS_PASSWORD }}
+      TF_VAR_application_secrets: ${{ secrets.POC_APPLICATION_SECRETS_JSON || '{}' }}
+      TF_VAR_s3_access_key: ${{ secrets.POC_S3_ACCESS_KEY }}
+      TF_VAR_s3_secret_key: ${{ secrets.POC_S3_SECRET_KEY }}
+      TF_ACTION: ${{ inputs.action }}
+      DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Check required credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in SCW_ACCESS_KEY SCW_SECRET_KEY SCW_DEFAULT_ORGANIZATION_ID SCW_DEFAULT_PROJECT_ID TF_VAR_database_password TF_VAR_redis_password; do
+            test -n "${!key}" || { echo "Missing configuration: $key"; exit 1; }
+          done
+      - name: Write non-secret configuration
+        run: python3 tools/ci/write-config.py
+      - name: Initialize remote state
+        run: terraform -chdir="$TF_ROOT" init -input=false -lockfile=readonly -backend-config=backend.ci.json
+      - name: Create plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$TF_ACTION" == "destroy" ]]; then
+            terraform -chdir="$TF_ROOT" plan -destroy -input=false -lock-timeout=5m -out=run.tfplan -no-color
+          else
+            terraform -chdir="$TF_ROOT" plan -input=false -lock-timeout=5m -out=run.tfplan -no-color
+          fi
+      - name: Apply the plan generated in this run
+        if: inputs.action == 'apply' || inputs.action == 'destroy'
+        run: terraform -chdir="$TF_ROOT" apply -input=false -lock-timeout=5m -no-color run.tfplan
+      - name: Show non-secret infrastructure outputs
+        if: inputs.action == 'apply'
+        run: terraform -chdir="$TF_ROOT" output -json
+      - name: Remove runner plan and configuration
+        if: always()
+        run: rm -f "$TF_ROOT/run.tfplan" "$TF_ROOT/.ci.auto.tfvars.json" "$TF_ROOT/backend.ci.json"
