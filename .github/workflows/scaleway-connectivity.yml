@@ -1,0 +1,24 @@
+name: Test Scaleway connectivity
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: scaleway-internal-poc
+    steps:
+      - name: Test API access
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
+        run: |
+          test -n "$SCW_SECRET_KEY"
+          test -n "$SCW_PROJECT_ID"
+
+          curl --fail-with-body --silent --show-error \
+            -H "X-Auth-Token: $SCW_SECRET_KEY" \
+            "https://api.scaleway.com/rdb/v1/regions/fr-par/instances?project_id=$SCW_PROJECT_ID"
