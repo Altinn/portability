@@ -23,22 +23,22 @@ output "private_network_id" {
   value       = module.network.private_network_id
   description = ""
 }
-/*
+
 output "postgresql_endpoint" {
   value       = { host = module.postgresql.host, port = module.postgresql.port, database = module.postgresql.database_name }
   description = ""
 }
-
+/*
 output "redis_endpoint" {
   value       = { host = module.redis.host, port = module.redis.port }
   description = ""
 }
-
+*/
 output "postgresql_ca_pem" {
   value       = module.postgresql.certificate
   description = ""
 }
-
+/*
 output "redis_ca_pem" {
   value       = module.redis.certificate
   description = ""

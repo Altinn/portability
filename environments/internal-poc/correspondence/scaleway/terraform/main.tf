@@ -6,7 +6,7 @@ module "network" {
   cidr       = var.network_cidr
   tags       = local.tags
 }
-/*
+
 module "postgresql" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/postgresql"
   name               = "${var.name_prefix}-postgres"
@@ -19,7 +19,7 @@ module "postgresql" {
   engine             = var.postgresql_engine
   node_type          = var.postgresql_node_type
 }
-*/
+
 /*
 module "redis" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/redis"
