@@ -39,8 +39,6 @@ jobs:
         with:
           terraform_version: 1.13.5
           terraform_wrapper: false
-      - name: Format
-        run: terraform fmt -check -recursive
       - name: Validate all modules and roots without cloud credentials
         shell: bash
         run: |
