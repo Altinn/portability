@@ -13,18 +13,18 @@ locals {
     "database-connection-string" = local.database_connection_string
   }, var.application_secrets)
   #"redis-connection-string"    = local.redis_connection_string
-  #probe_environment = {
-  #  POSTGRES_HOST     = module.postgresql.host
-  #  POSTGRES_PORT     = tostring(module.postgresql.port)
-  #  POSTGRES_DATABASE = module.postgresql.database_name
-  #  POSTGRES_USER     = module.postgresql.username
-  #  POSTGRES_CA_PEM   = module.postgresql.certificate
-  #  REDIS_HOST        = module.redis.host
-  #  REDIS_PORT        = tostring(module.redis.port)
-  #  REDIS_USER        = module.redis.username
-  #  REDIS_CA_PEM      = module.redis.certificate
-  #  S3_ENDPOINT       = module.attachments.endpoint
-  #  S3_REGION         = var.region
-  #  S3_BUCKET         = module.attachments.bucket_name
-  #}
+  probe_environment = {
+    POSTGRES_HOST     = module.postgresql.host
+    POSTGRES_PORT     = tostring(module.postgresql.port)
+    POSTGRES_DATABASE = module.postgresql.database_name
+    POSTGRES_USER     = module.postgresql.username
+    POSTGRES_CA_PEM   = module.postgresql.certificate
+    #REDIS_HOST        = module.redis.host
+    #REDIS_PORT        = tostring(module.redis.port)
+    #REDIS_USER        = module.redis.username
+    #REDIS_CA_PEM      = module.redis.certificate
+    S3_ENDPOINT       = module.attachments.endpoint
+    S3_REGION         = var.region
+    S3_BUCKET         = module.attachments.bucket_name
+  }
 }

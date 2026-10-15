@@ -58,7 +58,7 @@ module "registry" {
   project_id = var.project_id
   region     = var.region
 }
-/*
+
 module "application" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/serverless-container"
   name               = "${var.name_prefix}-api"
@@ -90,7 +90,7 @@ module "application" {
       S3_SECRET_KEY     = var.s3_secret_key
       } : {
       DatabaseOptions__ConnectionString      = local.database_connection_string
-      GeneralSettings__RedisConnectionString = local.redis_connection_string
+      #GeneralSettings__RedisConnectionString = local.redis_connection_string
   }, var.application_secrets)
   depends_on = [module.secrets, terraform_data.configuration_guard]
 }
@@ -119,4 +119,3 @@ resource "terraform_data" "configuration_guard" {
     }
   }
 }
-*/
