@@ -44,7 +44,7 @@ variable "cpu_limit" {
 variable "memory_limit_bytes" {
   type        = number
   description = "Memory bytes (matched to CPU)"
-  default     = 1073741824
+  default     = 1073000000
 }
 
 variable "min_scale" {
