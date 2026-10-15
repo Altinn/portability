@@ -5,9 +5,9 @@ locals {
   image                      = var.container_image != null ? var.container_image : "docker.io/nginxinc/nginx-unprivileged:1.28-alpine"
   database_connection_string = "Host=${module.postgresql.host};Port=${module.postgresql.port};Database=${module.postgresql.database_name};Username=${module.postgresql.username};Password=${var.database_password};SSL Mode=VerifyCA;Root Certificate=/app/certs/postgresql-ca.pem"
   # Verify the TLS server identity using Scaleway's CA/certificate when porting .NET Redis.
-  redis_connection_string = "${module.redis.host}:${module.redis.port},user=${module.redis.username},password=${var.redis_password},ssl=true,abortConnect=false"
-  extra_secret_keys       = toset([for key in keys(var.application_secrets) : key])
-  secret_names            = setunion(toset(["database-connection-string", "redis-connection-string"]), var.application_secret_names)
+  redis_connection_string    = "${module.redis.host}:${module.redis.port},user=${module.redis.username},password=${var.redis_password},ssl=true,abortConnect=false"
+  extra_secret_keys          = toset(keys(var.application_secrets))
+  secret_names               = setunion(toset(["database-connection-string", "redis-connection-string"]), var.application_secret_names)
   secret_values = merge({
     "database-connection-string" = local.database_connection_string
     "redis-connection-string"    = local.redis_connection_string
