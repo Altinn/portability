@@ -1,3 +1,4 @@
+/*
 output "container_endpoint" {
   value       = module.application.endpoint
   description = "Use X-Auth-Token when invocation privacy is private"
@@ -7,7 +8,7 @@ output "container_id" {
   value       = module.application.container_id
   description = ""
 }
-
+*/
 output "registry_endpoint" {
   value       = module.registry.endpoint
   description = ""
@@ -22,7 +23,7 @@ output "private_network_id" {
   value       = module.network.private_network_id
   description = ""
 }
-
+/*
 output "postgresql_endpoint" {
   value       = { host = module.postgresql.host, port = module.postgresql.port, database = module.postgresql.database_name }
   description = ""
@@ -52,3 +53,4 @@ output "runtime" {
   description = "Runtime mode and HTTP test configuration"
   value       = merge(module.application.runtime, { mode = var.container_mode })
 }
+*/

@@ -6,7 +6,7 @@ module "network" {
   cidr       = var.network_cidr
   tags       = local.tags
 }
-
+/*
 module "postgresql" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/postgresql"
   name               = "${var.name_prefix}-postgres"
@@ -19,7 +19,8 @@ module "postgresql" {
   engine             = var.postgresql_engine
   node_type          = var.postgresql_node_type
 }
-
+*/
+/*
 module "redis" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/redis"
   name               = "${var.name_prefix}-redis"
@@ -31,7 +32,7 @@ module "redis" {
   redis_version      = var.redis_version
   node_type          = var.redis_node_type
 }
-
+*/
 module "attachments" {
   source        = "../../../../../cloud-providers/scaleway/terraform/modules/object-storage"
   name          = local.bucket_name
@@ -40,7 +41,7 @@ module "attachments" {
   tags          = local.bucket_tags
   force_destroy = var.force_destroy_attachments
 }
-
+/*
 module "secrets" {
   source        = "../../../../../cloud-providers/scaleway/terraform/modules/secret-manager"
   name          = var.name_prefix
@@ -50,14 +51,14 @@ module "secrets" {
   secret_names  = local.secret_names
   secret_values = local.secret_values
 }
-
+*/
 module "registry" {
   source     = "../../../../../cloud-providers/scaleway/terraform/modules/container-registry"
   name       = "${var.name_prefix}-registry"
   project_id = var.project_id
   region     = var.region
 }
-
+/*
 module "application" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/serverless-container"
   name               = "${var.name_prefix}-api"
@@ -118,3 +119,4 @@ resource "terraform_data" "configuration_guard" {
     }
   }
 }
+*/
