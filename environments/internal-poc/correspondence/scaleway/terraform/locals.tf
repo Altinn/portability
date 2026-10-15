@@ -8,7 +8,7 @@ locals {
   #redis_connection_string = "${module.redis.host}:${module.redis.port},user=${module.redis.username},password=${var.redis_password},ssl=true,abortConnect=false"
   extra_secret_keys = toset(keys(var.application_secrets))
   #secret_names = setunion(toset(["database-connection-string", "redis-connection-string"]), var.application_secret_names)
-  secret_names  = setunion(toset(["database-connection-string"]), var.application_secret_names)
+  secret_names = setunion(toset(["database-connection-string"]), var.application_secret_names)
   secret_values = merge({
     "database-connection-string" = local.database_connection_string
   }, var.application_secrets)
