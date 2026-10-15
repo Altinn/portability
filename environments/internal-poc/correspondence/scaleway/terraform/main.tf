@@ -89,7 +89,7 @@ module "application" {
       S3_ACCESS_KEY     = var.s3_access_key
       S3_SECRET_KEY     = var.s3_secret_key
       } : {
-      DatabaseOptions__ConnectionString      = local.database_connection_string
+      DatabaseOptions__ConnectionString = local.database_connection_string
       #GeneralSettings__RedisConnectionString = local.redis_connection_string
   }, var.application_secrets)
   depends_on = [module.secrets, terraform_data.configuration_guard]
