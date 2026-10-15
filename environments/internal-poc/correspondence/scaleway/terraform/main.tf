@@ -20,7 +20,7 @@ module "postgresql" {
   node_type          = var.postgresql_node_type
 }
 
-
+/*
 module "redis" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/redis"
   name               = "${var.name_prefix}-redis"
@@ -32,7 +32,7 @@ module "redis" {
   redis_version      = var.redis_version
   node_type          = var.redis_node_type
 }
-
+*/
 module "attachments" {
   source        = "../../../../../cloud-providers/scaleway/terraform/modules/object-storage"
   name          = local.bucket_name
