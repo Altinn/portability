@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: scaleway-internal-poc
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build and push the probe to the existing Scaleway registry
         env:
           REGISTRY_ENDPOINT: ${{ vars.SCW_REGISTRY_ENDPOINT }}

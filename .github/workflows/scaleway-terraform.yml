@@ -34,8 +34,8 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.13.5
           terraform_wrapper: false
@@ -86,8 +86,8 @@ jobs:
       TF_ACTION: ${{ inputs.action }}
       DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.13.5
           terraform_wrapper: false
