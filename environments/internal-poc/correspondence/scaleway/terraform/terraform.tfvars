@@ -1,8 +1,8 @@
-project_id = "REPLACE-WITH-DIGDIR-PROJECT-UUID"
+project_id = "8a731d6e-cf59-4515-a092-7b8d211bed3a"
 region = "fr-par"
 zone = "fr-par-1"
 name_prefix = "altinn-corr-internal-poc"
-redis_version = "REPLACE-WITH-AVAILABLE-PATCHED-VERSION"
+redis_version = "8.4.0"
 container_mode = "smoke"
 container_privacy = "private"
 min_scale = 0

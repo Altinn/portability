@@ -6,7 +6,7 @@ module "network" {
   cidr       = var.network_cidr
   tags       = local.tags
 }
-
+/*
 module "postgresql" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/postgresql"
   name               = "${var.name_prefix}-postgres"
@@ -118,3 +118,4 @@ resource "terraform_data" "configuration_guard" {
     }
   }
 }
+*/
