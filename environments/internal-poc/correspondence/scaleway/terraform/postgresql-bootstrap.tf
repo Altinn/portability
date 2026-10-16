@@ -8,7 +8,7 @@ module "postgresql_bootstrap" {
   count = var.postgresql_bootstrap_image != "" ? 1 : 0
 
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/serverless-container"
-  name               = "${var.name_prefix}-pg-bootstrap"
+  name               = "${var.name_prefix}-pg-init"
   project_id         = var.project_id
   region             = var.region
   tags               = local.tags
