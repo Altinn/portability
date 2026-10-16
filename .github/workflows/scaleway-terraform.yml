@@ -84,6 +84,7 @@ jobs:
       TF_VAR_s3_access_key: ${{ secrets.POC_S3_ACCESS_KEY }}
       TF_VAR_s3_secret_key: ${{ secrets.POC_S3_SECRET_KEY }}
       TF_ACTION: ${{ inputs.action }}
+      TF_VAR_postgresql_bootstrap_image: ${{ vars.SCW_POSTGRES_BOOTSTRAP_IMAGE }}
       DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
       - uses: actions/checkout@v6
