@@ -15,6 +15,10 @@ resource "scaleway_rdb_instance" "this" {
   backup_schedule_retention = 7
   volume_type               = "sbs_5k"
   volume_size_in_gb         = var.volume_size_gb
+
+  settings = var.enable_pgaudit ? {
+    "rdb.enable_pgaudit" = "true"
+  } : {}
   private_network {
     pn_id       = var.private_network_id
     enable_ipam = true

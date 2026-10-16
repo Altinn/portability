@@ -18,6 +18,7 @@ module "postgresql" {
   password           = var.database_password
   engine             = var.postgresql_engine
   node_type          = var.postgresql_node_type
+  enable_pgaudit     = true
 }
 
 /*

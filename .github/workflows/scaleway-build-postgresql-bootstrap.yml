@@ -1,0 +1,39 @@
+name: Scaleway Build PostgreSQL Bootstrap
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    environment: scaleway-internal-poc
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test bootstrap code
+        run: python3 -m unittest discover -s tools/postgresql-bootstrap -p 'test_*.py'
+      - name: Build and push
+        env:
+          REGISTRY_ENDPOINT: ${{ vars.SCW_REGISTRY_ENDPOINT }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$REGISTRY_ENDPOINT"
+          test -n "$SCW_SECRET_KEY"
+          printf '%s' "$SCW_SECRET_KEY" | docker login "${REGISTRY_ENDPOINT%%/*}" --username nologin --password-stdin
+          image="$REGISTRY_ENDPOINT/postgresql-bootstrap:$GITHUB_SHA"
+          docker build --platform linux/amd64 -t "$image" tools/postgresql-bootstrap
+          docker push "$image"
+          echo "Set environment variable SCW_POSTGRES_BOOTSTRAP_IMAGE to: $image" >> "$GITHUB_STEP_SUMMARY"
+      - name: Log out
+        if: always()
+        env:
+          REGISTRY_ENDPOINT: ${{ vars.SCW_REGISTRY_ENDPOINT }}
+        run: |
+          if [ -n "$REGISTRY_ENDPOINT" ]; then
+            docker logout "${REGISTRY_ENDPOINT%%/*}"
+          fi

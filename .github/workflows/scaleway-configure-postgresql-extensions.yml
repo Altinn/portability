@@ -1,0 +1,78 @@
+name: Scaleway Configure PostgreSQL Extensions
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Shares deployment lock with the existing Terraform workflow.
+  group: scaleway-correspondence-deployment
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_ROOT: environments/internal-poc/correspondence/scaleway/terraform
+
+jobs:
+  configure:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    environment: scaleway-internal-poc
+    env:
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_STATE_ACCESS_KEY || secrets.SCW_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_STATE_SECRET_KEY || secrets.SCW_SECRET_KEY }}
+      AWS_EC2_METADATA_DISABLED: "true"
+      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
+      SCW_STATE_BUCKET: ${{ vars.SCW_STATE_BUCKET }}
+      SCW_STATE_REGION: ${{ vars.SCW_STATE_REGION }}
+      SCW_TFVARS_JSON: ${{ vars.SCW_TFVARS_JSON }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Write backend configuration using existing helper
+        run: python3 tools/ci/write-config.py
+      - name: Read bootstrap endpoint from infrastructure state
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir="$TF_ROOT" init -input=false -lockfile=readonly -backend-config=backend.ci.json
+          endpoint="$(terraform -chdir="$TF_ROOT" output -raw postgresql_bootstrap_endpoint)"
+          test -n "$endpoint" || { echo "Deploy the bootstrap container with Terraform first."; exit 1; }
+          case "$endpoint" in
+            https://*) ;;
+            *) echo "Expected an HTTPS container endpoint."; exit 1 ;;
+          esac
+          printf 'BOOTSTRAP_ENDPOINT=%s\n' "$endpoint" >> "$GITHUB_ENV"
+      - name: Install and verify PostgreSQL extensions inside Scaleway
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SCW_SECRET_KEY"
+          response_file="$RUNNER_TEMP/postgresql-extensions.json"
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 15 --max-time 300 \
+            -X POST -H 'Content-Length: 0' \
+            -H "X-Auth-Token: $SCW_SECRET_KEY" \
+            "${BOOTSTRAP_ENDPOINT%/}/extensions" \
+            --output "$response_file" || {
+              if [ -f "$response_file" ]; then cat "$response_file"; fi
+              exit 1
+            }
+          jq . "$response_file"
+          jq -e '.status == "ok"' "$response_file" > /dev/null
+          {
+            echo '### PostgreSQL extensions configured'
+            echo '```json'
+            jq . "$response_file"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary configuration
+        if: always()
+        run: rm -f "$TF_ROOT/.ci.auto.tfvars.json" "$TF_ROOT/backend.ci.json" "$RUNNER_TEMP/postgresql-extensions.json"
