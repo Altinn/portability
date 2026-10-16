@@ -16,9 +16,19 @@ resource "scaleway_rdb_instance" "this" {
   volume_type               = "sbs_5k"
   volume_size_in_gb         = var.volume_size_gb
 
-  settings = var.enable_pgaudit ? {
-    "rdb.enable_pgaudit" = "true"
-  } : {}
+  settings = merge(
+    {
+      effective_cache_size            = "1300"
+      maintenance_work_mem            = "150"
+      max_connections                 = "100"
+      max_parallel_workers            = "0"
+      max_parallel_workers_per_gather = "0"
+      work_mem                        = "4"
+    },
+    var.enable_pgaudit ? {
+      "rdb.enable_pgaudit" = "true"
+    } : {}
+  )
   private_network {
     pn_id       = var.private_network_id
     enable_ipam = true
