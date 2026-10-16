@@ -68,3 +68,9 @@ variable "volume_size_gb" {
   description = "Block storage size in GB"
   default     = 10
 }
+
+variable "enable_pgaudit" {
+  type        = bool
+  default     = false
+  description = "Enable pgaudit support; changing this can restart PostgreSQL."
+}
