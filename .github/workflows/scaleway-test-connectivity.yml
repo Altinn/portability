@@ -1,0 +1,59 @@
+name: Scaleway Test Connectivity
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    environment: scaleway-internal-poc
+
+    steps:
+      - name: Test PostgreSQL and S3 connectivity
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          CONTAINER_ENDPOINT: ${{ vars.SCW_CONTAINER_ENDPOINT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "$SCW_SECRET_KEY" || {
+            echo "Missing secret: SCW_SECRET_KEY"
+            exit 1
+          }
+
+          test -n "$CONTAINER_ENDPOINT" || {
+            echo "Missing variable: SCW_CONTAINER_ENDPOINT"
+            exit 1
+          }
+
+          response_file="$RUNNER_TEMP/connectivity-result.json"
+
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 15 \
+            --max-time 120 \
+            -H "X-Auth-Token: $SCW_SECRET_KEY" \
+            "${CONTAINER_ENDPOINT%/}/checks" \
+            --output "$response_file" || {
+              if [ -f "$response_file" ]; then
+                cat "$response_file"
+              fi
+              exit 1
+            }
+
+          jq . "$response_file"
+
+          jq -e '
+            .postgresql.status == "ok" and
+            .object_storage.status == "ok"
+          ' "$response_file" > /dev/null
+
+          {
+            echo "### Connectivity tests passed"
+            echo "- PostgreSQL: connection and SELECT 1 succeeded."
+            echo "- S3: write, read and delete succeeded."
+          } >> "$GITHUB_STEP_SUMMARY"
