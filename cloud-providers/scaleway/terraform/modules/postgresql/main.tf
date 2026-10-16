@@ -26,3 +26,11 @@ resource "scaleway_rdb_database" "this" {
   name        = var.database_name
   region      = var.region
 }
+
+resource "scaleway_rdb_privilege" "application" {
+  instance_id   = scaleway_rdb_instance.this.id
+  database_name = scaleway_rdb_database.this.name
+  user_name     = var.username
+  permission    = "all"
+  region        = var.region
+}
