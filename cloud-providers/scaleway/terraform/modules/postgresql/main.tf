@@ -48,3 +48,11 @@ resource "scaleway_rdb_privilege" "application" {
   permission    = "all"
   region        = var.region
 }
+
+resource "scaleway_rdb_privilege" "bootstrap_rdb" {
+  instance_id   = scaleway_rdb_instance.this.id
+  database_name = "rdb"
+  user_name     = var.username
+  permission    = "all"
+  region        = var.region
+}
