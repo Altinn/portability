@@ -59,6 +59,7 @@ module "registry" {
   project_id = var.project_id
   region     = var.region
 }
+/*
 
 module "application" {
   source             = "../../../../../cloud-providers/scaleway/terraform/modules/serverless-container"
@@ -120,3 +121,4 @@ resource "terraform_data" "configuration_guard" {
     }
   }
 }
+*/

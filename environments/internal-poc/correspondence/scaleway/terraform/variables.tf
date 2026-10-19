@@ -10,16 +10,16 @@ variable "project_id" {
 variable "region" {
   type        = string
   description = "Region for all regional services"
-  default     = "fr-par"
+  default     = "pl-waw"
 }
 
 variable "zone" {
   type        = string
   description = "Redis zone in the chosen region"
-  default     = "fr-par-1"
+  default     = "pl-waw-1"
   validation {
     condition     = var.zone == "${var.region}-1"
-    error_message = "Use the primary zone of the selected region (for example fr-par-1)."
+    error_message = "Use the primary zone of the selected region (for example pl-waw-1)."
   }
 }
 
