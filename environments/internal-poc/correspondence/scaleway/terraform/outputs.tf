@@ -1,4 +1,4 @@
-/*
+
 output "container_endpoint" {
   value       = module.application.endpoint
   description = "Use X-Auth-Token when invocation privacy is private"
@@ -8,7 +8,7 @@ output "container_id" {
   value       = module.application.container_id
   description = ""
 }
-*/
+
 output "registry_endpoint" {
   value       = module.registry.endpoint
   description = ""
