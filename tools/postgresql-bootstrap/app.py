@@ -52,12 +52,6 @@ def ensure_extensions(connection, names):
         if not set(names).issubset(available):
             raise PrerequisiteError("extension_unavailable")
 
-        cursor.execute("SHOW shared_preload_libraries")
-        preloaded = {name.strip().strip('"') for name in cursor.fetchone()[0].split(",")}
-        for name in ("pg_stat_statements", "pgaudit", "pg_cron"):
-            if name in names and name not in preloaded:
-                raise PrerequisiteError(name + "_not_preloaded")
-
         for name in names:
             cursor.execute(
                 sql.SQL("CREATE EXTENSION IF NOT EXISTS {}").format(sql.Identifier(name))
