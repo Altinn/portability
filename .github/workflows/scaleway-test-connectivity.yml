@@ -49,6 +49,7 @@ jobs:
 
           jq -e '
             .postgresql.status == "ok" and
+            .redis.status == "ok" and
             .object_storage.status == "ok"
           ' "$response_file" > /dev/null
 
