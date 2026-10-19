@@ -9,7 +9,7 @@ spec = importlib.util.spec_from_file_location('probe', Path(__file__).with_name(
 probe = importlib.util.module_from_spec(spec)
 # Unit tests cover payload cleanup/error disclosure without installing network SDKs.
 with patch.dict(sys.modules, {name: MagicMock() for name in
-                             ('boto3', 'psycopg', 'botocore', 'botocore.config')}):
+                             ('boto3', 'psycopg', 'redis', 'botocore', 'botocore.config')}):
     spec.loader.exec_module(probe)
 
 class ProbeTests(unittest.TestCase):
@@ -43,7 +43,7 @@ class ProbeTests(unittest.TestCase):
         handler.send_header = MagicMock()
         handler.end_headers = MagicMock()
         with patch.object(probe, 'check_postgres', side_effect=ValueError('secret-connection-string')), \
-             patch.object(probe, 'check_s3'):
+             patch.object(probe, 'check_redis'), patch.object(probe, 'check_s3'):
             handler.do_GET()
         handler.send_response.assert_called_once_with(503)
         self.assertNotIn(b'secret-connection-string', handler.wfile.getvalue())

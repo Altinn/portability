@@ -19,10 +19,11 @@ locals {
     POSTGRES_DATABASE = module.postgresql.database_name
     POSTGRES_USER     = module.postgresql.username
     POSTGRES_CA_PEM   = module.postgresql.certificate
-    #REDIS_HOST        = module.redis.host
-    #REDIS_PORT        = tostring(module.redis.port)
-    #REDIS_USER        = module.redis.username
-    #REDIS_CA_PEM      = module.redis.certificate
+    REDIS_HOST        = module.redis.host
+    REDIS_PORT        = tostring(module.redis.port)
+    REDIS_USER        = module.redis.username
+    REDIS_PASSWORD    = var.redis_password
+    REDIS_CA_PEM      = module.redis.certificate
     S3_ENDPOINT = module.attachments.endpoint
     S3_REGION   = var.region
     S3_BUCKET   = module.attachments.bucket_name
