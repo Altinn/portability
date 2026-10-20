@@ -74,26 +74,38 @@ module "application" {
   privacy            = var.container_privacy
   min_scale          = var.min_scale
   max_scale          = 1
+  # 560 mVCPU / ~1 GiB is the nginx size. Correspondence keeps the PoC worker counts and still needs the next tier.
+  cpu_limit          = var.container_mode == "correspondence" ? 1120 : 560
+  memory_limit_bytes = var.container_mode == "correspondence" ? 2146000000 : 1073000000
   environment_variables = merge(
     var.container_mode == "connectivity" ? local.probe_environment : {},
     var.container_mode == "correspondence" ? {
       ASPNETCORE_URLS                          = "http://+:2525"
       ASPNETCORE_ENVIRONMENT                   = "ScalewayPoc"
       MaskinportenJwkRotationSettings__Enabled = "false"
-      # These S3 keys are a proposed contract for the adapter, not existing app options.
-      Portability__S3Endpoint = module.attachments.endpoint
-      Portability__S3Bucket   = module.attachments.bucket_name
-  } : {}, var.application_environment)
+      AttachmentStorageOptions__S3Endpoint     = module.attachments.endpoint
+      AttachmentStorageOptions__S3Bucket       = module.attachments.bucket_name
+      AttachmentStorageOptions__S3Region       = var.region
+    } : {},
+    var.application_environment
+  )
   secret_environment_variables = var.container_mode == "smoke" ? {} : merge(
     var.container_mode == "connectivity" ? {
       POSTGRES_PASSWORD = var.database_password
       REDIS_PASSWORD    = var.redis_password
       S3_ACCESS_KEY     = var.s3_access_key
       S3_SECRET_KEY     = var.s3_secret_key
-      } : {
-      DatabaseOptions__ConnectionString = local.database_connection_string
-      #GeneralSettings__RedisConnectionString = local.redis_connection_string
-  }, var.application_secrets)
+    } : {},
+    var.container_mode == "correspondence" ? {
+      DatabaseOptions__ConnectionString      = local.database_connection_string
+      DatabaseOptions__SslRootCertificatePem = module.postgresql.certificate
+      GeneralSettings__RedisConnectionString = local.redis_connection_string
+      GeneralSettings__RedisCaPem            = module.redis.certificate
+      AttachmentStorageOptions__S3AccessKey  = var.s3_access_key
+      AttachmentStorageOptions__S3SecretKey  = var.s3_secret_key
+    } : {},
+    var.application_secrets
+  )
   depends_on = [module.secrets, terraform_data.configuration_guard]
 }
 
@@ -108,8 +120,15 @@ resource "terraform_data" "configuration_guard" {
       error_message = "Correspondence background workers require min_scale >= 1."
     }
     precondition {
-      condition     = var.container_mode != "connectivity" || (var.s3_access_key != "" && var.s3_secret_key != "")
-      error_message = "Connectivity mode needs separate S3 runtime credentials."
+      condition     = !contains(["connectivity", "correspondence"], var.container_mode) || (var.s3_access_key != "" && var.s3_secret_key != "")
+      error_message = "Connectivity and correspondence modes need the separate attachment-bucket S3 key, not the Terraform admin key."
+    }
+    precondition {
+      condition = var.container_mode != "correspondence" || alltrue([
+        for name in local.correspondence_secret_names :
+        contains(var.application_secret_names, name) && length(trimspace(try(var.application_secrets[name], ""))) > 0
+      ])
+      error_message = "Correspondence mode requires non-empty TT02 secrets, including GeneralSettings__CorrespondenceBaseUrl once the container URL exists."
     }
     precondition {
       condition     = local.extra_secret_keys == var.application_secret_names

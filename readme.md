@@ -91,10 +91,10 @@ scope is also supported).
 | `SCW_TFVARS_JSON` | Variable | Non-secret overrides; default `{}` |
 | `SCW_STATE_ACCESS_KEY` | Secret | Optional separate backend key; falls back to SCW_ACCESS_KEY |
 | `SCW_STATE_SECRET_KEY` | Secret | Optional separate backend key; falls back to SCW_SECRET_KEY |
-| `SCW_REGISTRY_ENDPOINT` | Variable | Required only for building probe; set from Terraform output |
-| `POC_S3_ACCESS_KEY` | Secret | Required for connectivity mode; separate runtime bucket access |
-| `POC_S3_SECRET_KEY` | Secret | Runtime S3 key with Put/Get/DeleteObject and DeleteObjectVersion |
-| `POC_APPLICATION_SECRETS_JSON` | Secret | Optional JSON map of app integration secrets |
+| `SCW_REGISTRY_ENDPOINT` | Variable | Required for image builds; Warsaw registry endpoint from Terraform output, no scheme |
+| `POC_S3_ACCESS_KEY` | Secret | Required for connectivity and correspondence; separate attachment-bucket key, not the Terraform admin key |
+| `POC_S3_SECRET_KEY` | Secret | Matching secret for that bucket key, including Put/Get/DeleteObject and DeleteObjectVersion |
+| `POC_APPLICATION_SECRETS_JSON` | Secret | JSON map of TT02 integration secrets for correspondence mode |
 
 Example `SCW_TFVARS_JSON` for the first run:
 
@@ -183,21 +183,55 @@ If the Redis certificate does not cover its private IP, verify its certificate
 names/DNS and override `REDIS_HOST` in `application_environment` to the matching,
 privately resolvable hostname. Do not turn off certificate validation.
 
-## 7. Port the actual application
+## 7. Deploy Correspondence
 
-Only after the probe passes, prepare an adapted Correspondence image. Set
-`container_mode = "correspondence"`, its image digest, `min_scale >= 1`, approved
-integration configuration and secrets. The root uses the source image's real
-port **2525**, process liveness `/healthz`, a proposed `ScalewayPoc` environment, password-based
-PostgreSQL authentication and TLS Redis. The new environment configuration must
-be added by the application team; it does not already exist in the uploaded code.
+The application side of this PoC is [feat/scaleway](https://github.com/Altinn/altinn-correspondence/pull/2152).
+Schema migration stays in that process at startup. This repository does not add a migration job.
 
-PostgreSQL's connection string points to `/app/certs/postgresql-ca.pem`: export
-`postgresql_ca_pem` and install/mount the CA in the adapted image. Redis needs the
-exported CA and a valid TLS identity integrated with the .NET client. Secret
-Manager payloads alone do not replace Azure Key Vault API calls. S3 environment
-keys under `Portability__` are an explicit **proposed adapter contract**, not
-existing Correspondence options. See the porting checklist for details.
+1. Run **Scaleway Build Correspondence** from the default branch. It builds
+   `feat/scaleway` as linux/amd64 and pushes the image to the Warsaw registry.
+   The summary prints the image digest.
+2. Keep using `POC_S3_ACCESS_KEY` and `POC_S3_SECRET_KEY`. Correspondence reads
+   them as `AttachmentStorageOptions__S3AccessKey` and
+   `AttachmentStorageOptions__S3SecretKey`. Do not substitute the Terraform admin key.
+3. Put the TT02 values in `POC_APPLICATION_SECRETS_JSON`. The object keys must be
+   exactly the `application_secret_names` list below. `GeneralSettings__CorrespondenceBaseUrl`
+   is the existing container URL, so TT02 can call the public endpoint.
+4. Set `SCW_TFVARS_JSON` to correspondence mode before the first apply. The
+   container is public because private invocation requires an `X-Auth-Token`
+   that TT02 cannot send. Correspondence uses 1120 millivCPU and about 2 GB;
+   560 millivCPU and 1 GB remain the nginx and probe size.
+
+```json
+{
+  "region": "pl-waw",
+  "zone": "pl-waw-1",
+  "name_prefix": "altinn-corr-internal-poc",
+  "redis_version": "8.4.0",
+  "container_mode": "correspondence",
+  "container_image": "rg.pl-waw.scw.cloud/NAMESPACE/correspondence@sha256:DIGEST",
+  "container_privacy": "public",
+  "min_scale": 1,
+  "application_secret_names": [
+    "MaskinportenSettings__ClientId",
+    "MaskinportenSettings__EncodedJwk",
+    "AltinnOptions__PlatformSubscriptionKey",
+    "AltinnOptions__AccessManagementSubscriptionKey",
+    "AltinnIdProviderSettings__ClientId",
+    "AltinnIdProviderSettings__ClientSecret",
+    "GeneralSettings__CorrespondenceBaseUrl"
+  ]
+}
+```
+
+`POC_APPLICATION_SECRETS_JSON` uses those same seven keys. Terraform also injects
+the database connection string, `DatabaseOptions__SslRootCertificatePem`,
+`GeneralSettings__RedisConnectionString` (`user`, `password`, `ssl=true`),
+`GeneralSettings__RedisCaPem`, and the S3 endpoint, bucket, region, and bucket key.
+The Redis host is the private IP. The Warsaw probe already checked that IP with
+hostname verification, so the connection string does not set `sslHost`.
+The application writes the Postgres CA to `/app/certs/postgresql-ca.pem` before it connects.
+Plan, then apply.
 
 ## Cleanup and cost
 

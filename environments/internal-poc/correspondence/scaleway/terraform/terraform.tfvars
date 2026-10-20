@@ -12,9 +12,18 @@ min_scale         = 0
 # First deployment uses nginx; later use the built connectivity probe:
 # container_mode = "connectivity"
 # container_image = "rg.fr-par.scw.cloud/YOUR-NAMESPACE/connectivity:COMMIT-SHA"
-# For the ported app (not the unchanged Azure image):
+# Correspondence deploy (set the same non-secret fields in GitHub SCW_TFVARS_JSON):
 # container_mode = "correspondence"
+# container_privacy = "public"
 # min_scale = 1
-# container_image = "rg.fr-par.scw.cloud/YOUR-NAMESPACE/correspondence@sha256:..."
-# application_secret_names = ["MaskinportenSettings__ClientId"]
-# application_secrets must be passed separately, never committed.
+# container_image = "rg.pl-waw.scw.cloud/YOUR-NAMESPACE/correspondence@sha256:..."
+# application_secret_names = [
+#   "MaskinportenSettings__ClientId",
+#   "MaskinportenSettings__EncodedJwk",
+#   "AltinnOptions__PlatformSubscriptionKey",
+#   "AltinnOptions__AccessManagementSubscriptionKey",
+#   "AltinnIdProviderSettings__ClientId",
+#   "AltinnIdProviderSettings__ClientSecret",
+#   "GeneralSettings__CorrespondenceBaseUrl",
+# ]
+# Put the matching TT02 values in POC_APPLICATION_SECRETS_JSON. Never commit them.

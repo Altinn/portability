@@ -1,0 +1,68 @@
+name: Scaleway Build Correspondence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    environment: scaleway-internal-poc
+    steps:
+      - name: Checkout Correspondence feat/scaleway
+        uses: actions/checkout@v6
+        with:
+          repository: Altinn/altinn-correspondence
+          ref: feat/scaleway
+          path: correspondence
+      - name: Build linux/amd64 and push to the Warsaw registry
+        env:
+          REGISTRY_ENDPOINT: ${{ vars.SCW_REGISTRY_ENDPOINT }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$REGISTRY_ENDPOINT"
+          test -n "$SCW_SECRET_KEY"
+          case "$REGISTRY_ENDPOINT" in
+            rg.pl-waw.scw.cloud/*) ;;
+            *)
+              echo "SCW_REGISTRY_ENDPOINT must be the Warsaw registry (rg.pl-waw.scw.cloud/...)."
+              exit 1
+              ;;
+          esac
+          printf '%s' "$SCW_SECRET_KEY" | docker login "${REGISTRY_ENDPOINT%%/*}" --username nologin --password-stdin
+          sha="$(git -C correspondence rev-parse HEAD)"
+          image="$REGISTRY_ENDPOINT/correspondence:$sha"
+          docker build --platform linux/amd64 -t "$image" correspondence
+          docker push "$image"
+          digest="$(docker image inspect "$image" --format '{{index .RepoDigests 0}}')"
+          test -n "$digest"
+          {
+            echo "Built Altinn/altinn-correspondence feat/scaleway at \`$sha\`."
+            echo
+            echo "Set these fields in \`SCW_TFVARS_JSON\`, then plan and apply:"
+            echo
+            echo '```json'
+            echo '{'
+            echo '  "container_mode": "correspondence",'
+            echo "  \"container_image\": \"$digest\","
+            echo '  "min_scale": 1,'
+            echo '  "container_privacy": "public"'
+            echo '}'
+            echo '```'
+            echo
+            echo "Private invocation would require an X-Auth-Token that TT02 cannot send."
+            echo "Schema migration runs in the application at startup. This repository does not deploy a migration job."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Log out
+        if: always()
+        env:
+          REGISTRY_ENDPOINT: ${{ vars.SCW_REGISTRY_ENDPOINT }}
+        run: |
+          if [ -n "${REGISTRY_ENDPOINT:-}" ]; then
+            docker logout "${REGISTRY_ENDPOINT%%/*}"
+          fi

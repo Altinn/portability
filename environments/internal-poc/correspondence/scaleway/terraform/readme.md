@@ -42,5 +42,6 @@ private Redis with TLS, versioned private attachment storage, private registry,
 and nginx on port 8080 with authenticated invocation and max one replica.
 Verify SKU/version availability and quotas in the actual project before apply.
 
-No Serverless Job is connected to the private database. Use a VPC-connected
-migration runner; the standalone job module is for reachable non-private workloads.
+No Serverless Job is connected to the private database. Correspondence on
+`ScalewayPoc` applies EF migrations during process startup. The standalone job
+module remains for reachable non-private workloads.
