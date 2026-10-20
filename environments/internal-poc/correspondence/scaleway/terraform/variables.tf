@@ -133,20 +133,20 @@ variable "application_secrets" {
 
 variable "application_secret_names" {
   type        = set(string)
-  description = "Non-sensitive keys of application_secrets"
+  description = "Non-sensitive keys of application_secrets. Correspondence mode requires the TT02 names in local.correspondence_secret_names."
   default     = []
 }
 
 variable "s3_access_key" {
   type        = string
-  description = "Separate runtime S3 access key for connectivity probe"
+  description = "Separate attachment-bucket access key for the connectivity probe and Correspondence. Not the Terraform admin key."
   default     = ""
   sensitive   = true
 }
 
 variable "s3_secret_key" {
   type        = string
-  description = "Separate runtime S3 secret key for connectivity probe"
+  description = "Separate attachment-bucket secret key for the connectivity probe and Correspondence. Not the Terraform admin key."
   default     = ""
   sensitive   = true
 }

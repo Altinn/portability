@@ -51,10 +51,9 @@ Deretter kan dere arbeide med den tilpassede Correspondence-containeren på port
 
 ## Avklaring om migrering
 
-Serverless Jobs kan foreløpig ikke nå Private Network. Jobbmodulen er derfor
-levert som en separat byggestein og kobles ikke til den private databasen.
-Kjør EF-migreringsbundle fra en runner/arbeidslast med privat nettverkstilgang.
-Databasen åpnes ikke offentlig for å få migreringen til å virke.
+Serverless Jobs kan foreløpig ikke nå Private Network. Jobbmodulen kobles ikke
+til den private databasen. Correspondence med `ScalewayPoc` kjører EF-migrering
+ved oppstart i selve API-containeren. Databasen åpnes ikke offentlig.
 
 ## Kontroller og avgrensning
 
