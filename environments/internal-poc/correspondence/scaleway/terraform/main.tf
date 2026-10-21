@@ -70,13 +70,13 @@ module "application" {
   private_network_id = module.network.private_network_id
   image              = local.image
   port               = var.container_mode == "correspondence" ? 2525 : 8080
-  health_path        = var.container_mode == "correspondence" ? "/healthz" : "/"
+  health_path        = var.container_mode == "correspondence" ? "/health" : "/"
   privacy            = var.container_privacy
   min_scale          = var.min_scale
   max_scale          = 1
   # 560 mVCPU / ~1 GiB is the nginx size. Correspondence keeps the PoC worker counts and still needs the next tier.
   cpu_limit          = var.container_mode == "correspondence" ? 1120 : 560
-  memory_limit_bytes = var.container_mode == "correspondence" ? 2146000000 : 1073000000
+  memory_limit_bytes = var.container_mode == "correspondence" ? 2048000000 : 1073000000
   environment_variables = merge(
     var.container_mode == "connectivity" ? local.probe_environment : {},
     var.container_mode == "correspondence" ? {
