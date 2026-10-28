@@ -221,3 +221,9 @@ variable "registry_pull_secret" {
   default     = ""
   sensitive   = true
 }
+
+variable "enable_kubernetes" {
+  type        = bool
+  description = "Deploy Kubernetes in parallel with the existing Serverless Container runtime"
+  default     = false
+}

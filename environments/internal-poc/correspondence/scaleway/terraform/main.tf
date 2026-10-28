@@ -61,7 +61,7 @@ module "registry" {
 }
 
 module "application" {
-  count  = var.application_runtime == "serverless-container" ? 1 : 0
+  #count  = var.application_runtime == "serverless-container" ? 1 : 0
   source = "../../../../../cloud-providers/scaleway/terraform/modules/serverless-container"
 
   name               = "${var.name_prefix}-api"
@@ -83,7 +83,7 @@ module "application" {
 }
 
 module "kubernetes_cluster" {
-  count  = var.application_runtime == "kubernetes" ? 1 : 0
+  count  = var.enable_kubernetes ? 1 : 0
   source = "../../../../../cloud-providers/scaleway/terraform/modules/kubernetes-cluster"
 
   name               = "${var.name_prefix}-k8s"
@@ -92,6 +92,7 @@ module "kubernetes_cluster" {
   zone               = var.zone
   private_network_id = module.network.private_network_id
   tags               = local.tags
+
   kubernetes_version = var.kubernetes_version
   node_type          = var.kubernetes_node_type
   pool_size          = var.kubernetes_pool_size
@@ -101,8 +102,9 @@ module "kubernetes_cluster" {
 }
 
 module "kubernetes_application" {
-  count  = var.application_runtime == "kubernetes" ? 1 : 0
+  count  = var.enable_kubernetes ? 1 : 0
   source = "../../../../../cloud-providers/scaleway/terraform/modules/kubernetes-application"
+
   providers = {
     kubernetes = kubernetes.kapsule
   }
@@ -116,16 +118,22 @@ module "kubernetes_application" {
   replicas                     = var.kubernetes_replicas
   environment_variables        = local.runtime_environment_variables
   secret_environment_variables = local.runtime_secret_environment_variables
-  cpu_request                  = var.container_mode == "correspondence" ? "500m" : "100m"
-  cpu_limit                    = var.container_mode == "correspondence" ? "1100m" : "500m"
-  memory_request               = var.container_mode == "correspondence" ? "1Gi" : "128Mi"
-  memory_limit                 = var.container_mode == "correspondence" ? "2Gi" : "512Mi"
-  create_registry_pull_secret  = var.container_mode != "smoke"
-  registry_server              = split("/", module.registry.endpoint)[0]
-  registry_username            = "${var.name_prefix}-registry"
-  registry_password            = var.registry_pull_secret
 
-  depends_on = [module.kubernetes_cluster, module.secrets, terraform_data.configuration_guard]
+  cpu_request    = var.container_mode == "correspondence" ? "500m" : "100m"
+  cpu_limit      = var.container_mode == "correspondence" ? "1100m" : "500m"
+  memory_request = var.container_mode == "correspondence" ? "1Gi" : "128Mi"
+  memory_limit   = var.container_mode == "correspondence" ? "2Gi" : "512Mi"
+
+  create_registry_pull_secret = var.container_mode != "smoke"
+  registry_server             = split("/", module.registry.endpoint)[0]
+  registry_username           = "${var.name_prefix}-registry"
+  registry_password           = var.registry_pull_secret
+
+  depends_on = [
+    module.kubernetes_cluster,
+    module.secrets,
+    terraform_data.configuration_guard
+  ]
 }
 
 resource "terraform_data" "configuration_guard" {
@@ -134,29 +142,39 @@ resource "terraform_data" "configuration_guard" {
       condition     = var.container_mode == "smoke" || var.container_image != null
       error_message = "Supply a built image for connectivity or correspondence mode."
     }
+
     precondition {
-      condition     = var.container_mode != "correspondence" || (var.application_runtime == "serverless-container" ? var.min_scale >= 1 : var.kubernetes_replicas >= 1)
-      error_message = "Correspondence requires at least one continuously running instance/pod."
+      condition = var.container_mode != "correspondence" || (
+        var.min_scale >= 1 &&
+        (!var.enable_kubernetes || var.kubernetes_replicas >= 1)
+      )
+      error_message = "Correspondence requires at least one continuously running Serverless Container instance and, when Kubernetes is enabled, at least one Kubernetes pod."
     }
+
     precondition {
       condition     = !contains(["connectivity", "correspondence"], var.container_mode) || (var.s3_access_key != "" && var.s3_secret_key != "")
       error_message = "Connectivity and correspondence modes need the separate attachment-bucket S3 key, not the Terraform admin key."
     }
+
     precondition {
-      condition     = var.application_runtime != "kubernetes" || var.container_mode == "smoke" || var.registry_pull_secret != ""
+      condition     = !var.enable_kubernetes || var.container_mode == "smoke" || var.registry_pull_secret != ""
       error_message = "Kubernetes with a private registry image requires TF_VAR_registry_pull_secret. Use a dedicated read-only registry API key."
     }
+
     precondition {
       condition = var.container_mode != "correspondence" || alltrue([
         for name in local.correspondence_secret_names :
-        contains(var.application_secret_names, name) && length(trimspace(try(var.application_secrets[name], ""))) > 0
+        contains(var.application_secret_names, name) &&
+        length(trimspace(try(var.application_secrets[name], ""))) > 0
       ])
       error_message = "Correspondence mode requires non-empty TT02 secrets, including GeneralSettings__CorrespondenceBaseUrl once the public endpoint exists."
     }
+
     precondition {
       condition     = local.extra_secret_keys == var.application_secret_names
       error_message = "application_secret_names must exactly match application_secrets keys."
     }
+
     precondition {
       condition     = length(setintersection(var.application_secret_names, toset(["database-connection-string", "redis-connection-string"]))) == 0
       error_message = "Extra secrets cannot override generated connection-string secrets."

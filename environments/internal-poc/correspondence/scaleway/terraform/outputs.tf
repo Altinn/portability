@@ -1,26 +1,26 @@
 
 output "application_endpoint" {
-  value       = var.application_runtime == "serverless-container" ? module.application[0].endpoint : module.kubernetes_application[0].endpoint
+  value       = var.application_runtime == "serverless-container" ? module.application.endpoint : module.kubernetes_application.endpoint
   description = "Public application endpoint for the selected runtime"
 }
 
 output "container_endpoint" {
-  value       = var.application_runtime == "serverless-container" ? module.application[0].endpoint : null
+  value       = var.application_runtime == "serverless-container" ? module.application.endpoint : null
   description = "Serverless Container endpoint; null when Kubernetes is selected"
 }
 
 output "container_id" {
-  value       = var.application_runtime == "serverless-container" ? module.application[0].container_id : null
+  value       = var.application_runtime == "serverless-container" ? module.application.container_id : null
   description = "Serverless Container id; null when Kubernetes is selected"
 }
 
 output "kubernetes_cluster_id" {
-  value       = var.application_runtime == "kubernetes" ? module.kubernetes_cluster[0].cluster_id : null
+  value       = var.application_runtime == "kubernetes" ? module.kubernetes_cluster.cluster_id : null
   description = "Kapsule cluster id; null when Serverless Container is selected"
 }
 
 output "kubernetes_load_balancer_ip" {
-  value       = var.application_runtime == "kubernetes" ? module.kubernetes_application[0].load_balancer_ip : null
+  value       = var.application_runtime == "kubernetes" ? module.kubernetes_application.load_balancer_ip : null
   description = "Public LoadBalancer IP for the Kubernetes workload"
 }
 
