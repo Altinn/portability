@@ -16,17 +16,21 @@ resource "kubernetes_secret_v1" "application" {
     name      = "${var.name}-environment"
     namespace = kubernetes_namespace_v1.this.metadata[0].name
   }
+
   data = var.secret_environment_variables
   type = "Opaque"
 }
 
 resource "kubernetes_secret_v1" "registry" {
   count = var.create_registry_pull_secret ? 1 : 0
+
   metadata {
     name      = "${var.name}-registry"
     namespace = kubernetes_namespace_v1.this.metadata[0].name
   }
+
   type = "kubernetes.io/dockerconfigjson"
+
   data = {
     ".dockerconfigjson" = jsonencode({
       auths = {
@@ -41,7 +45,11 @@ resource "kubernetes_secret_v1" "registry" {
 }
 
 resource "kubernetes_deployment_v1" "this" {
+  # During the PoC we do not want Terraform apply to block for several
+  # minutes if the application does not immediately become Ready.
+  # Kubernetes probes still control pod health.
   wait_for_rollout = false
+
   metadata {
     name      = var.name
     namespace = kubernetes_namespace_v1.this.metadata[0].name
@@ -50,16 +58,20 @@ resource "kubernetes_deployment_v1" "this" {
 
   spec {
     replicas = var.replicas
+
     selector {
       match_labels = local.labels
     }
+
     template {
       metadata {
         labels = local.labels
       }
+
       spec {
         dynamic "image_pull_secrets" {
           for_each = var.create_registry_pull_secret ? [1] : []
+
           content {
             name = kubernetes_secret_v1.registry[0].metadata[0].name
           }
@@ -77,6 +89,7 @@ resource "kubernetes_deployment_v1" "this" {
 
           dynamic "env" {
             for_each = var.environment_variables
+
             content {
               name  = env.key
               value = env.value
@@ -85,8 +98,10 @@ resource "kubernetes_deployment_v1" "this" {
 
           dynamic "env" {
             for_each = nonsensitive(toset(keys(var.secret_environment_variables)))
+
             content {
               name = env.value
+
               value_from {
                 secret_key_ref {
                   name = kubernetes_secret_v1.application.metadata[0].name
@@ -101,10 +116,25 @@ resource "kubernetes_deployment_v1" "this" {
               cpu    = var.cpu_request
               memory = var.memory_request
             }
+
             limits = {
               cpu    = var.cpu_limit
               memory = var.memory_limit
             }
+          }
+
+          # Correspondence can take some time to initialize.
+          # While startup_probe is failing, Kubernetes will not run
+          # readiness/liveness checks against the container.
+          startup_probe {
+            http_get {
+              path = var.health_path
+              port = var.container_port
+            }
+
+            period_seconds    = 10
+            timeout_seconds   = 5
+            failure_threshold = 30
           }
 
           readiness_probe {
@@ -112,10 +142,10 @@ resource "kubernetes_deployment_v1" "this" {
               path = var.health_path
               port = var.container_port
             }
-            initial_delay_seconds = 10
-            period_seconds        = 10
-            timeout_seconds       = 5
-            failure_threshold     = 6
+
+            period_seconds    = 10
+            timeout_seconds   = 5
+            failure_threshold = 6
           }
 
           liveness_probe {
@@ -123,10 +153,10 @@ resource "kubernetes_deployment_v1" "this" {
               path = var.health_path
               port = var.container_port
             }
-            initial_delay_seconds = 30
-            period_seconds        = 30
-            timeout_seconds       = 5
-            failure_threshold     = 3
+
+            period_seconds    = 30
+            timeout_seconds   = 5
+            failure_threshold = 3
           }
         }
       }
@@ -143,6 +173,7 @@ resource "kubernetes_service_v1" "public" {
   spec {
     selector = local.labels
     type     = "LoadBalancer"
+
     port {
       name        = "http"
       port        = var.public_port
@@ -152,4 +183,14 @@ resource "kubernetes_service_v1" "public" {
   }
 
   wait_for_load_balancer = true
+
+  lifecycle {
+    # Scaleway CCM adds annotations such as:
+    # service.beta.kubernetes.io/scw-loadbalancer-id
+    #
+    # These are managed by Scaleway and should not create Terraform drift.
+    ignore_changes = [
+      metadata[0].annotations
+    ]
+  }
 }
