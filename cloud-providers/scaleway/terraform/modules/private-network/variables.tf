@@ -28,3 +28,9 @@ variable "cidr" {
     error_message = "Provide a valid IPv4 CIDR."
   }
 }
+
+variable "vpc_id" {
+  type        = string
+  description = "Existing VPC ID. If null, a new VPC is created."
+  default     = null
+}

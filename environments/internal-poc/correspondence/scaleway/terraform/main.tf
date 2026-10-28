@@ -82,6 +82,20 @@ module "application" {
   depends_on = [module.secrets, terraform_data.configuration_guard]
 }
 
+module "kubernetes_network" {
+  count  = var.enable_kubernetes ? 1 : 0
+  source = "../../../../../cloud-providers/scaleway/terraform/modules/private-network"
+
+  name       = "${var.name_prefix}-k8s"
+  project_id = var.project_id
+  region     = var.region
+
+  vpc_id = module.network.vpc_id
+  cidr   = "10.21.0.0/22"
+
+  tags = local.tags
+}
+
 module "kubernetes_cluster" {
   count  = var.enable_kubernetes ? 1 : 0
   source = "../../../../../cloud-providers/scaleway/terraform/modules/kubernetes-cluster"
@@ -90,7 +104,7 @@ module "kubernetes_cluster" {
   project_id         = var.project_id
   region             = var.region
   zone               = var.zone
-  private_network_id = module.network.private_network_id
+  private_network_id = module.kubernetes_network[0].private_network_id
   tags               = local.tags
 
   kubernetes_version = var.kubernetes_version
