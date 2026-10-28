@@ -41,6 +41,7 @@ resource "kubernetes_secret_v1" "registry" {
 }
 
 resource "kubernetes_deployment_v1" "this" {
+  wait_for_rollout = false
   metadata {
     name      = var.name
     namespace = kubernetes_namespace_v1.this.metadata[0].name
