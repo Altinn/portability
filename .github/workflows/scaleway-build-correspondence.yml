@@ -48,6 +48,7 @@ jobs:
             echo
             echo '```json'
             echo '{'
+            echo '  "application_runtime": "serverless-container",'
             echo '  "container_mode": "correspondence",'
             echo "  \"container_image\": \"$digest\","
             echo '  "min_scale": 1,'
@@ -56,6 +57,8 @@ jobs:
             echo '```'
             echo
             echo "Private invocation would require an X-Auth-Token that TT02 cannot send."
+            echo
+            echo "Kubernetes alternative: set application_runtime=kubernetes, keep the same image digest, and configure POC_REGISTRY_PULL_SECRET."
             echo "Schema migration runs in the application at startup. This repository does not deploy a migration job."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Log out

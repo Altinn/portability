@@ -150,3 +150,74 @@ variable "s3_secret_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "application_runtime" {
+  type        = string
+  description = "Runtime for the application: serverless-container or kubernetes"
+  default     = "serverless-container"
+  validation {
+    condition     = contains(["serverless-container", "kubernetes"], var.application_runtime)
+    error_message = "Use serverless-container or kubernetes."
+  }
+}
+
+variable "kubernetes_version" {
+  type        = string
+  description = "Kapsule Kubernetes version"
+  default     = "1.37.1"
+}
+
+variable "kubernetes_node_type" {
+  type        = string
+  description = "Kapsule worker node type"
+  default     = "DEV1-M"
+}
+
+variable "kubernetes_pool_size" {
+  type        = number
+  description = "Initial worker count"
+  default     = 1
+}
+
+variable "kubernetes_min_size" {
+  type        = number
+  description = "Minimum worker count when autoscaling is enabled"
+  default     = 1
+}
+
+variable "kubernetes_max_size" {
+  type        = number
+  description = "Maximum worker count when autoscaling is enabled"
+  default     = 2
+}
+
+variable "kubernetes_autoscaling" {
+  type        = bool
+  description = "Enable Kapsule node-pool autoscaling"
+  default     = false
+}
+
+variable "kubernetes_namespace" {
+  type        = string
+  description = "Namespace for the PoC workload"
+  default     = "correspondence"
+}
+
+variable "kubernetes_replicas" {
+  type        = number
+  description = "Correspondence pod replicas"
+  default     = 1
+}
+
+variable "kubernetes_public_port" {
+  type        = number
+  description = "Public LoadBalancer service port"
+  default     = 80
+}
+
+variable "registry_pull_secret" {
+  type        = string
+  description = "Dedicated Scaleway Registry read credential used by Kapsule imagePullSecret"
+  default     = ""
+  sensitive   = true
+}

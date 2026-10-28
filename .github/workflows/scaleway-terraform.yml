@@ -83,6 +83,7 @@ jobs:
       TF_VAR_application_secrets: ${{ secrets.POC_APPLICATION_SECRETS_JSON || '{}' }}
       TF_VAR_s3_access_key: ${{ secrets.POC_S3_ACCESS_KEY }}
       TF_VAR_s3_secret_key: ${{ secrets.POC_S3_SECRET_KEY }}
+      TF_VAR_registry_pull_secret: ${{ secrets.POC_REGISTRY_PULL_SECRET }}
       TF_ACTION: ${{ inputs.action }}
       TF_VAR_postgresql_bootstrap_image: ${{ vars.SCW_POSTGRES_BOOTSTRAP_IMAGE }}
       DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
@@ -102,7 +103,7 @@ jobs:
       - name: Write non-secret configuration
         run: python3 tools/ci/write-config.py
       - name: Initialize remote state
-        run: terraform -chdir="$TF_ROOT" init -input=false -lockfile=readonly -backend-config=backend.ci.json
+        run: terraform -chdir="$TF_ROOT" init -input=false -backend-config=backend.ci.json
       - name: Create plan
         shell: bash
         run: |

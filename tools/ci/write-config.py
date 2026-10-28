@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path("environments/internal-poc/correspondence/scaleway/terraform")
 FORBIDDEN = {"project_id", "database_password", "redis_password", "application_secrets",
-             "s3_access_key", "s3_secret_key"}
+             "s3_access_key", "s3_secret_key", "registry_pull_secret"}
 
 def build(env):
     config = json.loads(env.get("SCW_TFVARS_JSON") or "{}")
