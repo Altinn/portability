@@ -3,9 +3,7 @@ output "application_endpoint" {
 
   value = {
     serverless_container = module.application.endpoint
-    kubernetes = var.enable_kubernetes
-      ? module.kubernetes_application[0].endpoint
-      : null
+    kubernetes            = var.enable_kubernetes ? module.kubernetes_application[0].endpoint : null
   }
 }
 
@@ -20,26 +18,17 @@ output "container_id" {
 }
 
 output "kubernetes_cluster_id" {
-  value = var.enable_kubernetes
-    ? module.kubernetes_cluster[0].cluster_id
-    : null
-
+  value       = var.enable_kubernetes ? module.kubernetes_cluster[0].cluster_id : null
   description = "Kapsule cluster id; null when Kubernetes is disabled"
 }
 
 output "kubernetes_load_balancer_ip" {
-  value = var.enable_kubernetes
-    ? module.kubernetes_application[0].load_balancer_ip
-    : null
-
+  value       = var.enable_kubernetes ? module.kubernetes_application[0].load_balancer_ip : null
   description = "Public LoadBalancer IP for the Kubernetes workload; null when Kubernetes is disabled"
 }
 
 output "kubernetes_endpoint" {
-  value = var.enable_kubernetes
-    ? module.kubernetes_application[0].endpoint
-    : null
-
+  value       = var.enable_kubernetes ? module.kubernetes_application[0].endpoint : null
   description = "Public endpoint for the Kubernetes workload; null when Kubernetes is disabled"
 }
 
